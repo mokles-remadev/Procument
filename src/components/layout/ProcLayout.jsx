@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { Layout, Menu, theme, Typography, Steps, Button, Modal, Table, message, Tag, Form, Input, DatePicker, TimePicker, Upload, Space, Divider, Row, Col } from 'antd';
+import { Layout, Menu, theme, Typography, Steps, Button, Modal, Table, message, Tag, Form, Input, DatePicker, TimePicker, Upload, Space, Divider, Row, Col, Card, Select, List } from 'antd';
 import * as AntdIcons from '@ant-design/icons';
-import { ClipboardList, Users, Settings, BarChart3, FileCheck, DollarSign, Briefcase, FileText, Star, Download } from 'lucide-react';
+import { ClipboardList, Users, Settings, BarChart3, FileCheck, DollarSign, Briefcase, FileText, Star, Download, Bell, Plus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 
 const { Header, Content, Sider } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { Option } = Select;
 
 const ProcLayout = ({ children, onMenuSelect }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportFormVisible, setExportFormVisible] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
+  const [selectedExport, setSelectedExport] = useState(null);
   const { token } = theme.useToken();
   const [form] = Form.useForm();
+  const [notificationForm] = Form.useForm();
 
   const processSteps = [
     { key: 'rfq', title: 'RFQ', description: 'Request for Quotation', icon: <ClipboardList size={16} /> },
@@ -24,122 +30,16 @@ const ProcLayout = ({ children, onMenuSelect }) => {
     { key: 'bod', title: 'BOD', description: 'Board Approval', icon: <Briefcase size={16} /> },
     { key: 'po', title: 'PO', description: 'Purchase Order', icon: <FileText size={16} /> },
   ];
-
   const additionalMenuItems = [
     { key: 'dashboard', icon: <BarChart3 size={16} />, label: 'Dashboard' },
     { key: 'suppliers', icon: <Users size={16} />, label: 'Suppliers' },
     { key: 'quality', icon: <Star size={16} />, label: 'Supplier Quality' },
-    { key: 'export', icon: <Download size={16} />, label: 'Export Declaration', onClick: () => setExportModalVisible(true) },
+    { key: 'export', icon: <Download size={16} />, label: 'Export Declaration' },
     { key: 'settings', icon: <Settings size={16} />, label: 'Settings' },
   ];
-
   const getCurrentStep = (key) => {
     const stepIndex = processSteps.findIndex(step => step.key === key);
     return stepIndex >= 0 ? stepIndex : -1;
-  };
-
-  const exportData = [
-    {
-      id: 'EXP-2024-001',
-      poNumber: 'PO-2024-001',
-      supplier: 'Electro Solutions Inc.',
-      items: 'Circuit Breakers, Control Panels',
-      from: 'Factory Warehouse',
-      to: 'Project Site A',
-      transportDate: '2024-03-15',
-      transportTime: '09:00',
-      value: 150000,
-      currency: 'USD',
-      status: 'Pending',
-      documents: ['packing_list.pdf', 'invoice.pdf'],
-      receivedDate: '2024-03-16',
-      receivedTime: '10:30',
-      acknowledgmentDoc: 'receipt_001.pdf',
-    },
-    {
-      id: 'EXP-2024-002',
-      poNumber: 'PO-2024-002',
-      supplier: 'MechPro Industries',
-      items: 'HVAC Units',
-      from: 'Supplier Facility',
-      to: 'Main Warehouse',
-      transportDate: '2024-03-10',
-      transportTime: '14:30',
-      value: 280000,
-      currency: 'USD',
-      status: 'Completed',
-      documents: ['export_permit.pdf', 'customs_declaration.pdf'],
-      receivedDate: '2024-03-11',
-      receivedTime: '09:15',
-      acknowledgmentDoc: 'receipt_002.pdf',
-    },
-  ];
-
-  const exportColumns = [
-    { title: 'Declaration ID', dataIndex: 'id', key: 'id' },
-    { title: 'PO Number', dataIndex: 'poNumber', key: 'poNumber' },
-    { title: 'Supplier', dataIndex: 'supplier', key: 'supplier' },
-    { title: 'From', dataIndex: 'from', key: 'from' },
-    { title: 'To', dataIndex: 'to', key: 'to' },
-    { title: 'Transport Date', dataIndex: 'transportDate', key: 'transportDate' },
-    { title: 'Transport Time', dataIndex: 'transportTime', key: 'transportTime' },
-    { 
-      title: 'Received Date/Time', 
-      key: 'received',
-      render: (_, record) => record.receivedDate ? 
-        `${record.receivedDate} ${record.receivedTime}` : 
-        '-'
-    },
-    { 
-      title: 'Value', 
-      dataIndex: 'value', 
-      key: 'value',
-      render: (value, record) => `${record.currency} ${value.toLocaleString()}`
-    },
-    { 
-      title: 'Status', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'Completed' ? 'green' : 'orange'}>{status}</Tag>
-      )
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button 
-            type="link" 
-            onClick={() => {
-              setSelectedDeclaration(record);
-              setExportFormVisible(true);
-            }}
-          >
-            View/Edit
-          </Button>
-          <Button type="link" icon={<Download size={14} />}>
-            Download
-          </Button>
-        </Space>
-      ),
-    },
-  ];
-
-  const handleExportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Export Declarations');
-    XLSX.writeFile(wb, 'export_declarations.xlsx');
-    message.success('Export declarations downloaded successfully');
-  };
-
-  const handleFormSubmit = (values) => {
-    // eslint-disable-next-line no-console
-    console.log('Form values:', values);
-    message.success('Export declaration form submitted successfully');
-    setExportFormVisible(false);
-    form.resetFields();
   };
 
   const menuItems = [
@@ -159,10 +59,185 @@ const ProcLayout = ({ children, onMenuSelect }) => {
         key: item.key,
         icon: item.icon,
         label: item.label,
-        onClick: item.onClick,
       })),
     },
   ];
+  
+  const exportData = [
+    {
+      poRef: 'PO-2024-001',
+      outRef: 'OUT-2024-001',
+      costCenter: 'CC-001',
+      exportDate: '2024-03-10',
+      from: 'Main Warehouse',
+      to: 'Project Site A',
+      pol: 'Port of Shanghai',
+      pod: 'Port of Rotterdam',
+      invoiceAttached: true,
+      status: 'Completed',
+      receivedDate: '2024-03-15',
+      receivedTime: '14:30',
+      acknowledgment: 'receipt_001.pdf'
+    },
+    {
+      poRef: 'PO-2024-002',
+      outRef: 'OUT-2024-002',
+      costCenter: 'CC-002',
+      exportDate: '2024-03-12',
+      from: 'Supplier Facility',
+      to: 'Regional Store',
+      pol: 'Port of Singapore',
+      pod: 'Port of Hamburg',
+      invoiceAttached: false,
+      status: 'Pending',
+      receivedDate: null,
+      receivedTime: null,
+      acknowledgment: null
+    }
+  ];
+  const handleExportToExcel = () => {
+    const exportableData = exportData.map(item => ({
+      'PO Reference': item.poRef,
+      'Out Reference': item.outRef,
+      'Cost Center': item.costCenter,
+      'From': item.from,
+      'To': item.to,
+      'Port of Loading': item.pol,
+      'Port of Discharge': item.pod,
+      'Invoice Status': item.invoiceAttached ? 'Attached' : 'Pending',
+      'Received Date': item.receivedDate || '-',
+      'Received Time': item.receivedTime || '-',
+      'Status': item.status
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportableData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Export Declarations');
+    XLSX.writeFile(wb, 'export_declarations.xlsx');
+  };
+
+  const handleAddExport = () => {
+    setShowAddForm(true);
+    form.resetFields();
+  };
+
+  const handleFormSubmit = (values) => {
+    console.log('Form submitted:', values);
+    setShowAddForm(false);
+    form.resetFields();
+    message.success('Export declaration saved successfully');
+  };
+
+  const handleExportNotification = (record) => {
+    setSelectedExport(record);
+    setShowNotificationModal(true);
+    notificationForm.setFieldsValue({
+      meetingDate: dayjs(),
+      meetingTime: dayjs(),
+      location: 'Conference Room A',
+      attendees: ['HSE', 'GAQC', 'Logistics', 'Procurement']
+    });
+  };
+  const handleNotificationSubmit = (values) => {
+    console.log('Notification submitted:', {
+      export: selectedExport,
+      meeting: values,
+      minutesOfMeeting: values.minutesOfMeeting?.[0]?.originFileObj,
+      materialReceivingAcknowledgment: values.materialReceivingAcknowledgment?.[0]?.originFileObj
+    });
+    setShowNotificationModal(false);
+    notificationForm.resetFields();
+    message.success('Export notification meeting scheduled successfully');
+  };
+
+  const handleViewDetails = (record) => {
+    form.setFieldsValue({
+      poRef: record.poRef,
+      outRef: record.outRef,
+      costCenter: record.costCenter,
+      from: record.from,
+      to: record.to,
+      pol: record.pol,
+      pod: record.pod,
+      receivedDate: record.receivedDate,
+      receivedTime: record.receivedTime,
+    });
+  };
+  const exportColumns = [
+    { title: 'PO Reference', dataIndex: 'poRef', key: 'poRef' },
+    { title: 'Out Reference', dataIndex: 'outRef', key: 'outRef' },
+    { title: 'Cost Center', dataIndex: 'costCenter', key: 'costCenter' },
+    { title: 'Export Date', dataIndex: 'exportDate', key: 'exportDate' },
+    { title: 'From', dataIndex: 'from', key: 'from' },
+    { title: 'To', dataIndex: 'to', key: 'to' },
+    { title: 'POL', dataIndex: 'pol', key: 'pol' },
+    { title: 'POD', dataIndex: 'pod', key: 'pod' },
+    { 
+      title: 'Invoice',
+      dataIndex: 'invoiceAttached',
+      key: 'invoiceAttached',
+      render: (attached) => (
+        <Tag color={attached ? 'green' : 'orange'}>
+          {attached ? 'Attached' : 'Pending'}
+        </Tag>
+      )
+    },
+    {
+      title: 'Received',
+      key: 'received',
+      render: (_, record) => (
+        record.receivedDate ? 
+          `${record.receivedDate} ${record.receivedTime}` :
+          <Tag color="orange">Pending</Tag>
+      )
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'Completed' ? 'green' : 'orange'}>
+          {status}
+        </Tag>
+      )
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Space>
+          <Button 
+            type="primary"
+            icon={<Bell size={14} />}
+            onClick={() => handleExportNotification(record)}
+          >
+            Export Notification
+          </Button>
+          <Button type="link" onClick={() => handleViewDetails(record)}>
+            View Details
+          </Button>
+          {record.acknowledgment && (
+            <Button type="link" icon={<Download size={14} />}>
+              Download Receipt
+            </Button>
+          )}
+        </Space>
+      )
+    }
+  ];
+
+  const uploadProps = {
+    beforeUpload: () => false,
+    maxCount: 5,
+  };
+
+  const singleUploadProps = {
+    beforeUpload: () => false,
+    maxCount: 1,
+  };
+  const renderContent = () => {
+    return children;
+  };
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -186,16 +261,14 @@ const ProcLayout = ({ children, onMenuSelect }) => {
           fontSize: collapsed ? 20 : 18
         }}>
           {collapsed ? <ClipboardList size={24} /> : 'Procurement'}
-        </div>
-        <Menu
+        </div>        <Menu
           theme="light"
           defaultSelectedKeys={['dashboard']}
           mode="inline"
           items={menuItems}
           onClick={({ key }) => {
-            if (key !== 'export') {
-              onMenuSelect(key);
-            }
+            setCurrentPage(key);
+            onMenuSelect(key);
           }}
         />
       </Sider>
@@ -234,15 +307,14 @@ const ProcLayout = ({ children, onMenuSelect }) => {
               }}
             />
           </div>
-        </Header>
-        <Content style={{ margin: '16px' }}>
+        </Header>        <Content style={{ margin: '16px' }}>
           <div style={{ 
             padding: 24, 
             background: token.colorBgContainer,
             borderRadius: token.borderRadius,
             minHeight: 360 
           }}>
-            {children}
+            {renderContent()}
           </div>
         </Content>
       </Layout>
