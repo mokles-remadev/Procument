@@ -78,6 +78,7 @@ export const items: Item[] = [
     unit: 'pcs',
     category: 'Electrical',
     status: 'Quoted',
+    bodApproved: true,
   },
   {
     id: 'ITEM-002',
@@ -89,6 +90,7 @@ export const items: Item[] = [
     unit: 'pcs',
     category: 'Electrical',
     status: 'Quoted',
+    bodApproved: true,
   },
   {
     id: 'ITEM-003',
@@ -100,7 +102,7 @@ export const items: Item[] = [
     unit: 'm',
     category: 'Electrical',
     status: 'Quoted',
-   
+    bodApproved: false,
   },
   {
     id: 'ITEM-004',
@@ -112,7 +114,7 @@ export const items: Item[] = [
     unit: 'pcs',
     category: 'Electrical',
     status: 'Quoted',
-    
+    bodApproved: true,
   },
   {
     id: 'ITEM-005',
@@ -124,6 +126,7 @@ export const items: Item[] = [
     unit: 'sets',
     category: 'Electrical',
     status: 'Open',
+    bodApproved: false,
   },
   
   // Mechanical Systems Package Items
@@ -136,7 +139,8 @@ export const items: Item[] = [
     quantity: 4,
     unit: 'pcs',
     category: 'Mechanical',
-    status: 'Open'
+    status: 'Open',
+    bodApproved: false,
   },
   {
     id: 'ITEM-007',
@@ -147,7 +151,8 @@ export const items: Item[] = [
     quantity: 6,
     unit: 'pcs',
     category: 'Mechanical',
-    status: 'Open'
+    status: 'Open',
+    bodApproved: false,
   },
   {
     id: 'ITEM-008',
@@ -158,7 +163,8 @@ export const items: Item[] = [
     quantity: 2,
     unit: 'pcs',
     category: 'Mechanical',
-    status: 'Open'
+    status: 'Open',
+    bodApproved: false,
   },
   {
     id: 'ITEM-009',
@@ -169,7 +175,8 @@ export const items: Item[] = [
     quantity: 8,
     unit: 'pcs',
     category: 'Mechanical',
-    status: 'Open'
+    status: 'Open',
+    bodApproved: false,
   }
 ];
 

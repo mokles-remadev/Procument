@@ -18,7 +18,8 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "allowJs": true
   },
-  "include": ["src"]
+  "include": ["src/**/*", "src/**/*.jsx", "src/**/*.js", "src/**/*.ts", "src/**/*.tsx"]
 }

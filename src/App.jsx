@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ConfigProvider } from 'antd';
-import ProcurementLayout from './components/layout/ProcurementLayout';
+
 import RFQManagement from './pages/RFQManagement';
 import Dashboard from './pages/Dashboard';
 import TBEManagement from './pages/TBEManagement';
@@ -9,9 +9,10 @@ import BODApproval from './pages/BODApproval';
 import POManagement from './pages/POManagement';
 import Suppliers from './pages/Suppliers';
 import SupplierQuality from './pages/SupplierQuality';
+import ProcLayout from './components/layout/ProcLayout';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  const [currentPage, setCurrentPage] = useState('dashboard');
 
   const theme = {
     token: {
@@ -50,9 +51,9 @@ function App() {
 
   return (
     <ConfigProvider theme={theme}>
-      <ProcurementLayout onMenuSelect={setCurrentPage}>
+      <ProcLayout onMenuSelect={setCurrentPage}>
         {renderPage()}
-      </ProcurementLayout>
+      </ProcLayout>
     </ConfigProvider>
   );
 }

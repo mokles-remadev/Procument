@@ -6,19 +6,14 @@ import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 
 const { Header, Content, Sider } = Layout;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { TextArea } = Input;
 
-interface ProcurementLayoutProps {
-  children: React.ReactNode;
-  onMenuSelect: (key: string) => void;
-}
-
-const ProcurementLayout: React.FC<ProcurementLayoutProps> = ({ children, onMenuSelect }) => {
+const ProcLayout = ({ children, onMenuSelect }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportFormVisible, setExportFormVisible] = useState(false);
-  const [selectedDeclaration, setSelectedDeclaration] = useState<any>(null);
+  const [selectedDeclaration, setSelectedDeclaration] = useState(null);
   const { token } = theme.useToken();
   const [form] = Form.useForm();
 
@@ -38,12 +33,11 @@ const ProcurementLayout: React.FC<ProcurementLayoutProps> = ({ children, onMenuS
     { key: 'settings', icon: <Settings size={16} />, label: 'Settings' },
   ];
 
-  const getCurrentStep = (key: string) => {
+  const getCurrentStep = (key) => {
     const stepIndex = processSteps.findIndex(step => step.key === key);
     return stepIndex >= 0 ? stepIndex : -1;
   };
 
-  // Mock data for export declarations
   const exportData = [
     {
       id: 'EXP-2024-001',
@@ -100,13 +94,13 @@ const ProcurementLayout: React.FC<ProcurementLayoutProps> = ({ children, onMenuS
       title: 'Value', 
       dataIndex: 'value', 
       key: 'value',
-      render: (value: number, record: any) => `${record.currency} ${value.toLocaleString()}`
+      render: (value, record) => `${record.currency} ${value.toLocaleString()}`
     },
     { 
       title: 'Status', 
       dataIndex: 'status', 
       key: 'status',
-      render: (status: string) => (
+      render: status => (
         <Tag color={status === 'Completed' ? 'green' : 'orange'}>{status}</Tag>
       )
     },
@@ -140,14 +134,14 @@ const ProcurementLayout: React.FC<ProcurementLayoutProps> = ({ children, onMenuS
     message.success('Export declarations downloaded successfully');
   };
 
-  const handleFormSubmit = (values: any) => {
+  const handleFormSubmit = (values) => {
+    // eslint-disable-next-line no-console
     console.log('Form values:', values);
     message.success('Export declaration form submitted successfully');
     setExportFormVisible(false);
     form.resetFields();
   };
 
-  // Organize menu items to match the process flow
   const menuItems = [
     {
       type: 'group',
@@ -447,4 +441,4 @@ const ProcurementLayout: React.FC<ProcurementLayoutProps> = ({ children, onMenuS
   );
 };
 
-export default ProcurementLayout;
+export default ProcLayout;

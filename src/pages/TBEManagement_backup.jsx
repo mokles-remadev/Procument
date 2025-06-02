@@ -1,0 +1,1923 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Table, 
+  Card, 
+  Tag, 
+  Space, 
+  Typography, 
+  Button, 
+  Drawer, 
+  Form, 
+  Radio, 
+  Input, 
+  message,
+  Alert
+} from 'antd';
+import { 
+  CheckCircleOutlined, 
+  CloseCircleOutlined, 
+  EyeOutlined,
+  EditOutlined
+} from '@ant-design/icons';
+  PrinterOutlined,
+  SaveOutlined,
+  SyncOutlined,
+  BellOutlined,
+  FilterOutlined,
+  SearchOutlined,
+  CheckOutlined,
+  QuestionCircleOutlined
+} from '@ant-design/icons';
+import PropTypes from 'prop-types';
+import { packages, getItemsByPackageId, getQuotesByItemId } from '../mock/mockData';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+const { TabPane } = Tabs;
+const { Panel } = Collapse;
+const { Step } = Steps;
+const { Option } = Select;
+
+// Enhanced technical criteria with binary compliance evaluation
+const TECHNICAL_CRITERIA = [
+  {
+    key: 'technicalCompliance',
+    name: 'Technical Compliance',
+    description: 'Meets all technical specifications and requirements',
+    type: 'compliance',
+    required: true,
+    options: [
+      { value: 'compliant', label: 'Compliant', description: 'Meets all technical specifications' },
+      { value: 'non-compliant', label: 'Non-Compliant', description: 'Does not meet technical specifications' }
+    ]
+  },
+  {
+    key: 'qualityStandards',
+    name: 'Quality Standards',
+    description: 'Compliance with quality standards and certifications',
+    type: 'compliance',
+    required: true,
+    options: [
+      { value: 'compliant', label: 'Compliant', description: 'Meets all required quality standards and certifications' },
+      { value: 'non-compliant', label: 'Non-Compliant', description: 'Does not meet quality standards or certifications' }
+    ]
+  },
+  {
+    key: 'technicalCapability',
+    name: 'Technical Capability',
+    description: 'Supplier technical expertise and manufacturing capability',
+    type: 'compliance',
+    required: true,
+    options: [
+      { value: 'compliant', label: 'Compliant', description: 'Adequate technical capability and expertise' },
+      { value: 'non-compliant', label: 'Non-Compliant', description: 'Insufficient technical capability' }
+    ]
+  },
+  {
+    key: 'deliveryCapability',
+    name: 'Delivery Capability',
+    description: 'Ability to meet delivery timeline and logistics',
+    type: 'compliance',
+    required: true,
+    options: [
+      { value: 'compliant', label: 'Compliant', description: 'Can meet delivery requirements' },
+      { value: 'non-compliant', label: 'Non-Compliant', description: 'Cannot meet delivery requirements' }
+    ]
+  },
+  {
+    key: 'documentation',
+    name: 'Documentation Quality',
+    description: 'Completeness and quality of technical documentation',
+    type: 'compliance',
+    required: true,
+    options: [
+      { value: 'compliant', label: 'Compliant', description: 'Complete and adequate documentation provided' },
+      { value: 'non-compliant', label: 'Non-Compliant', description: 'Incomplete or inadequate documentation' }
+    ]
+  }
+];
+
+// Enhanced compliance checklist with criticality levels
+const COMPLIANCE_CHECKLIST = [
+  { key: 'materialSpecs', name: 'Material specifications met', required: true, criticality: 'high' },
+  { key: 'dimensionalSpecs', name: 'Dimensional specifications met', required: true, criticality: 'high' },
+  { key: 'performanceSpecs', name: 'Performance specifications met', required: true, criticality: 'critical' },
+  { key: 'safetyStandards', name: 'Safety standards compliance', required: true, criticality: 'critical' },
+  { key: 'environmentalReqs', name: 'Environmental requirements met', required: false, criticality: 'medium' },
+  { key: 'certifications', name: 'Required certifications provided', required: true, criticality: 'high' },
+  { key: 'testCertificates', name: 'Test certificates provided', required: false, criticality: 'medium' },
+  { key: 'warrantyTerms', name: 'Warranty terms acceptable', required: true, criticality: 'medium' }
+];
+
+// Enhanced risk factors with impact levels
+const RISK_FACTORS = [
+  { 
+    key: 'technicalRisk', 
+    name: 'Technical Risk', 
+    description: 'Risk of technical non-compliance',
+    impactArea: 'Quality & Performance'
+  },
+  { 
+    key: 'deliveryRisk', 
+    name: 'Delivery Risk', 
+    description: 'Risk of delivery delays',
+    impactArea: 'Schedule & Timeline'
+  },
+  { 
+    key: 'qualityRisk', 
+    name: 'Quality Risk', 
+    description: 'Risk of quality issues',
+    impactArea: 'Product Quality'
+  },
+  { 
+    key: 'supplierRisk', 
+    name: 'Supplier Risk', 
+    description: 'Supplier capability and reliability risk',
+    impactArea: 'Business Continuity'
+  }
+];
+
+// New evaluation templates for different item types
+const EVALUATION_TEMPLATES = {
+  mechanical: {
+    name: 'Mechanical Components',
+    criteria: ['technicalCompliance', 'qualityStandards', 'technicalCapability'],
+    requiredChecks: ['materialSpecs', 'dimensionalSpecs', 'performanceSpecs'],
+    focusAreas: ['Material properties', 'Dimensional accuracy', 'Manufacturing process']
+  },
+  electrical: {
+    name: 'Electrical Components',
+    criteria: ['technicalCompliance', 'safetyStandards', 'qualityStandards'],
+    requiredChecks: ['performanceSpecs', 'safetyStandards', 'certifications'],
+    focusAreas: ['Electrical specifications', 'Safety compliance', 'Environmental ratings']
+  },
+  software: {
+    name: 'Software/Digital',
+    criteria: ['technicalCompliance', 'documentation', 'technicalCapability'],
+    requiredChecks: ['performanceSpecs', 'certifications', 'documentation'],
+    focusAreas: ['Functionality', 'Integration capability', 'Support & maintenance']
+  },
+  services: {
+    name: 'Services',
+    criteria: ['technicalCapability', 'deliveryCapability', 'qualityStandards'],
+    requiredChecks: ['performanceSpecs', 'certifications', 'warrantyTerms'],
+    focusAreas: ['Service delivery', 'Resource capability', 'Quality assurance']
+  }
+};
+
+const TBEManagement = ({ 
+  autoSave = true,
+  onEvaluationComplete = () => {},
+  onEvaluationUpdate = () => {},
+  allowMultipleEvaluators = false,
+  evaluationTimeout = 30000,
+  customFields = [],
+  readOnly = false,
+  defaultView = 'packages',
+  filterConfig = {
+    showCompleted: true,
+    showPending: true,
+    categories: [],
+  },
+  permissions = {
+    canEvaluate: true,
+    canApprove: true,
+    canReject: true,
+    canEdit: true,
+  },
+}) => {
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [evaluationDrawerOpen, setEvaluationDrawerOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [evaluations, setEvaluations] = useState({});
+  const [form] = Form.useForm();
+  
+  // New state for enhanced features
+  const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
+  const [evaluationTemplate, setEvaluationTemplate] = useState('mechanical');
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [selectedQuotesForComparison, setSelectedQuotesForComparison] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({
+    scoreRange: [0, 100],
+    compliance: 'all',
+    riskLevel: 'all'
+  });
+
+  // Utility function to get scoring color based on value
+  const getScoreColor = useCallback((score) => {
+    if (score >= 85) return '#52c41a'; // Green
+    if (score >= 70) return '#1890ff'; // Blue
+    if (score >= 60) return '#faad14'; // Orange
+    return '#ff4d4f'; // Red
+  }, []);
+
+  // Utility function to get risk level color
+  const getRiskLevelColor = useCallback((level) => {
+    switch (level?.toLowerCase()) {
+      case 'low': return '#52c41a';
+      case 'medium': return '#faad14';
+      case 'high': return '#ff4d4f';
+      default: return '#d9d9d9';
+    }
+  }, []);
+
+  // Auto-save functionality
+  const autoSaveEvaluation = useCallback(async (values) => {
+    if (!autoSave || readOnly) return;
+    
+    try {
+      setAutoSaveStatus('saving');
+      
+      // Simulate auto-save delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const draftData = {
+        ...values,
+        itemId: selectedItem?.id,
+        lastSaved: new Date().toISOString(),
+        isDraft: true
+      };
+      
+      // Store in localStorage for persistence
+      localStorage.setItem(`tbe_draft_${selectedItem?.id}`, JSON.stringify(draftData));
+      
+      setAutoSaveStatus('saved');
+      
+    } catch (error) {
+      setAutoSaveStatus('error');
+      console.error('Auto-save failed:', error);
+    }
+  }, [autoSave, readOnly, selectedItem?.id]);
+
+  // Load draft data on form initialization
+  const loadDraftEvaluation = useCallback((itemId) => {
+    try {
+      const draftData = localStorage.getItem(`tbe_draft_${itemId}`);
+      if (draftData) {
+        const parsedDraft = JSON.parse(draftData);
+        form.setFieldsValue(parsedDraft);
+        message.info('Draft evaluation loaded');
+      }
+    } catch (error) {
+      console.error('Failed to load draft:', error);
+    }
+  }, [form]);
+
+  // Export evaluation data
+  const exportEvaluationData = useCallback((format = 'json') => {
+    try {
+      const evaluationData = {
+        package: selectedPackage,
+        item: selectedItem,
+        evaluation: evaluations[selectedItem?.id],
+        exportedAt: new Date().toISOString(),
+        exportedBy: 'Current User'
+      };
+
+      if (format === 'json') {
+        const blob = new Blob([JSON.stringify(evaluationData, null, 2)], {
+          type: 'application/json'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tbe_${selectedItem?.id}_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      message.success('Evaluation data exported successfully');
+    } catch (error) {
+      message.error('Failed to export evaluation data');
+      console.error('Export error:', error);
+    }
+  }, [selectedPackage, selectedItem, evaluations]);
+
+  // Generate evaluation summary report
+  const generateEvaluationSummary = useCallback(() => {
+    if (!selectedItem) return null;
+
+    const quotes = getQuotesByItemId(selectedItem.id);
+    const evaluation = evaluations[selectedItem.id];
+
+    if (!evaluation || !quotes?.length) return null;
+
+    const summaryData = quotes.map(quote => {
+      const quoteEval = evaluation.quotes?.[quote.id] || {};
+      
+      let totalScore = 0;
+      let totalWeight = 0;
+      
+      TECHNICAL_CRITERIA.forEach(criteria => {
+        const score = quoteEval[`${criteria.key}_score`] || 0;
+        totalScore += score * (criteria.weight / 100);
+        totalWeight += criteria.weight;
+      });
+
+      const finalScore = totalWeight > 0 ? (totalScore / totalWeight) * 100 : 0;
+
+      return {
+        supplier: quote.supplierName,
+        score: Math.round(finalScore),
+        recommendation: quoteEval.technical_recommendation || 'pending',
+        compliance: quoteEval.compliance_checklist ? 
+          Object.values(quoteEval.compliance_checklist).filter(Boolean).length : 0,
+        risks: quoteEval.risk_assessment ? 
+          Object.values(quoteEval.risk_assessment).filter(risk => risk?.level === 'high').length : 0
+      };
+    });
+
+    return summaryData.sort((a, b) => b.score - a.score);
+  }, [selectedItem, evaluations]);
+
+  const handleEvaluate = useCallback((item) => {
+    setSelectedItem(item);
+    setEvaluationDrawerOpen(true);
+    
+    // Pre-fill form with existing evaluation if available
+    const existingEvaluation = evaluations[item.id];
+    if (existingEvaluation) {
+      form.setFieldsValue(existingEvaluation);
+    } else {
+      form.resetFields();
+    }
+
+    // Load draft data if available
+    loadDraftEvaluation(item.id);
+  }, [evaluations, form, loadDraftEvaluation]);
+  const handleEvaluationSubmit = useCallback(async (values) => {
+    if (readOnly || !permissions.canEvaluate) {
+      message.warning('You do not have permission to submit evaluations');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Validate required fields
+      const quotes = getQuotesByItemId(selectedItem.id);
+      if (!quotes?.length) {
+        throw new Error('No quotes available for evaluation');
+      }
+
+      // Simulate API call with timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Evaluation submission timeout')), evaluationTimeout)
+      );
+      
+      const submitPromise = new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await Promise.race([submitPromise, timeoutPromise]);
+        const evaluationData = {
+        ...values,
+        itemId: selectedItem.id,
+        itemName: selectedItem.name,
+        packageId: selectedPackage?.id,
+        evaluatedBy: 'Current User', // This would come from auth context
+        evaluatedAt: new Date().toISOString(),
+        status: 'completed',
+        quotesEvaluated: quotes.length,
+        customFields: customFields.reduce((acc, field) => {
+          if (values[field.key]) {
+            acc[field.key] = values[field.key];
+          }
+          return acc;
+        }, {})
+      };
+      
+      setEvaluations(prev => ({
+        ...prev,
+        [selectedItem.id]: evaluationData
+      }));
+      
+      // Trigger callbacks
+      const isUpdate = !!evaluations[selectedItem.id];
+      if (isUpdate) {
+        onEvaluationUpdate(evaluationData);
+      } else {
+        onEvaluationComplete(evaluationData);
+      }
+      
+      message.success(`Technical evaluation ${isUpdate ? 'updated' : 'submitted'} successfully`);
+      setEvaluationDrawerOpen(false);
+      form.resetFields();
+      
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to submit evaluation';
+      setError(errorMessage);
+      message.error(errorMessage);
+      console.error('Evaluation submission error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    selectedItem, 
+    selectedPackage, 
+    form, 
+    evaluations, 
+    readOnly, 
+    permissions.canEvaluate,
+    evaluationTimeout,
+    customFields,
+    onEvaluationComplete,
+    onEvaluationUpdate
+  ]);
+  const getEvaluationStatus = useCallback((itemId) => {
+    const evaluation = evaluations[itemId];
+    if (!evaluation) return 'pending';
+    return evaluation.status === 'completed' ? 'completed' : 'pending';
+  }, [evaluations]);
+  const getStatusColor = useCallback((status) => {
+    switch (status) {
+      case 'completed': return 'green';
+      case 'pending': return 'orange';
+      default: return 'default';
+    }
+  }, []);
+  const packagesWithEvaluationStatus = useMemo(() => {
+    return packages.map(pkg => {
+      const items = getItemsByPackageId(pkg.id);
+      const evaluatedItems = items.filter(item => evaluations[item.id]);
+      const completedItems = evaluatedItems.filter(item => 
+        evaluations[item.id]?.status === 'completed'
+      );
+      
+      return {
+        ...pkg,
+        totalItems: items.length,
+        evaluatedItems: evaluatedItems.length,
+        completedItems: completedItems.length,
+        evaluationProgress: items.length > 0 ? 
+          Math.round((evaluatedItems.length / items.length) * 100) : 0
+      };
+    });
+  }, [evaluations]);
+  const packageColumns = useMemo(() => [
+    {
+      title: 'Package ID',
+      dataIndex: 'id',
+      key: 'id',
+      render: (id) => <Text strong style={{ color: '#1890ff' }}>{id}</Text>,
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <Button 
+          type="link" 
+          onClick={() => setSelectedPackage(record)}
+          style={{ padding: 0, height: 'auto' }}
+        >
+          {text}
+        </Button>
+      ),
+    },
+    {
+      title: 'Engineer',
+      dataIndex: 'procurementEngineer',
+      key: 'engineer',
+      render: (engineer) => engineer?.name || 'Unassigned',
+    },
+    {
+      title: 'Evaluation Progress',
+      key: 'progress',
+      render: (_, record) => (
+        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+          <Progress 
+            percent={record.evaluationProgress} 
+            size="small"
+            status={record.evaluationProgress === 100 ? 'success' : 'active'}
+            format={percent => `${record.evaluatedItems}/${record.totalItems}`}
+          />          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {record.completedItems} completed
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status, record) => {
+        let color = 'blue';
+        if (status === 'In Progress') color = 'orange';
+        if (status === 'Completed' || record.evaluationProgress === 100) color = 'green';
+        
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Button 
+          type="primary" 
+          icon={<EyeOutlined />}
+          onClick={() => setSelectedPackage(record)}
+        >
+          Evaluate
+        </Button>
+      ),
+    },
+  ], []);
+  const itemColumns = useMemo(() => [
+    {
+      title: 'Item ID',
+      dataIndex: 'id',
+      key: 'id',
+      render: (id) => <Text strong>{id}</Text>,
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name) => <Text style={{ color: '#1890ff' }}>{name}</Text>,
+    },
+    {
+      title: 'Specification',
+      dataIndex: 'specification',
+      key: 'specification',
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (spec) => (
+        <Tooltip title={spec}>
+          <Text>{spec}</Text>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'Category',
+      dataIndex: 'category',
+      key: 'category',
+      render: (category) => <Tag color="blue">{category}</Tag>,
+    },
+    {
+      title: 'Evaluation Status',
+      key: 'evaluationStatus',
+      render: (_, record) => {
+        const status = getEvaluationStatus(record.id);
+        const evaluation = evaluations[record.id];
+        
+        return (
+          <Space direction="vertical" size="small">
+            <Badge 
+              status={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'processing'}
+              text={status === 'pending' ? 'Pending Evaluation' : status === 'approved' ? 'Approved' : 'Rejected'}
+            />
+            {evaluation && (
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                By {evaluation.evaluatedBy}
+              </Text>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Item Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={status === 'Open' ? 'blue' : status === 'Quoted' ? 'orange' : 'green'}>
+          {status}
+        </Tag>
+      ),
+    },    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => {
+        const evaluation = evaluations[record.id];
+        const canEvaluate = permissions.canEvaluate && !readOnly;
+        const canEdit = permissions.canEdit && !readOnly;
+        
+        return (
+          <Space>
+            {canEvaluate && (
+              <Tooltip title={evaluation ? (canEdit ? 'Re-evaluate' : 'View Evaluation') : 'Evaluate'}>
+                <Button 
+                  type={evaluation ? 'default' : 'primary'}
+                  icon={evaluation ? (canEdit ? <EditOutlined /> : <EyeOutlined />) : <EyeOutlined />}
+                  onClick={() => handleEvaluate(record)}
+                  disabled={evaluation && !canEdit}
+                >
+                  {evaluation ? (canEdit ? 'Edit' : 'View') : 'Evaluate'}
+                </Button>
+              </Tooltip>
+            )}
+            {evaluation && (
+              <Tooltip title="View Evaluation Details">
+                <Button 
+                  type="link" 
+                  icon={<FileTextOutlined />}
+                  onClick={() => {
+                    message.info('Evaluation details would be shown here');
+                  }}
+                />
+              </Tooltip>
+            )}
+            {!canEvaluate && (
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                No permission
+              </Text>
+            )}
+          </Space>
+        );
+      },
+    },
+  ], [getEvaluationStatus, evaluations, handleEvaluate]);  const renderTechnicalEvaluation = useCallback(() => {
+    if (!selectedItem) return null;
+
+    const quotes = getQuotesByItemId(selectedItem.id);
+    const existingEvaluation = evaluations[selectedItem.id];
+
+    if (!quotes?.length) {
+      return (
+        <Alert
+          message="No Quotes Available"
+          description="No quotes have been submitted for this item yet."
+          type="warning"
+          showIcon
+        />
+      );
+    }    // Calculate technical compliance for comparison
+    const calculateTechnicalCompliance = (quoteData) => {
+      if (!quoteData) return { isCompliant: false, compliancePercentage: 0 };
+      
+      const complianceResult = calculateAdvancedTechnicalScore(quoteData);
+      const compliancePercentage = complianceResult.totalCriteria > 0 ? 
+        Math.round((complianceResult.compliantCount / complianceResult.totalCriteria) * 100) : 0;
+      
+      return {
+        isCompliant: complianceResult.isCompliant,
+        compliancePercentage,
+        requiredCompliant: complianceResult.requiredCompliantCount === complianceResult.totalRequiredCriteria
+      };
+    };
+
+    const quotesWithCompliance = quotes.map(quote => {
+      const quoteEvaluation = existingEvaluation?.quotes?.[quote.id] || {};
+      const compliance = calculateTechnicalCompliance(quoteEvaluation);
+      return {
+        ...quote,
+        technicalCompliance: compliance.isCompliant,
+        compliancePercentage: compliance.compliancePercentage,
+        evaluationData: quoteEvaluation
+      };
+    }).sort((a, b) => {
+      // Sort by compliance status first, then by compliance percentage
+      if (a.technicalCompliance !== b.technicalCompliance) {
+        return b.technicalCompliance - a.technicalCompliance;
+      }
+      return b.compliancePercentage - a.compliancePercentage;
+    });
+
+    return (
+      <Spin spinning={loading}>
+        <div style={{ marginBottom: 16 }}>
+          <Steps size="small" current={existingEvaluation ? 2 : 0}>
+            <Step title="Information Review" icon={<FileTextOutlined />} />
+            <Step title="Technical Evaluation" icon={<SafetyCertificateOutlined />} />
+            <Step title="Scoring & Summary" icon={<TrophyOutlined />} />
+          </Steps>
+        </div>
+
+        <Tabs defaultActiveKey="overview" type="card">
+          <TabPane tab={
+            <span>
+              <FileTextOutlined />
+              Item Overview
+            </span>
+          } key="overview">
+            <Card title="Item Information" size="small">
+              <Descriptions bordered column={2} size="small">
+                <Descriptions.Item label="Item ID">{selectedItem.id}</Descriptions.Item>
+                <Descriptions.Item label="Category">{selectedItem.category}</Descriptions.Item>
+                <Descriptions.Item label="Quantity">{selectedItem.quantity} {selectedItem.unit}</Descriptions.Item>
+                <Descriptions.Item label="Status">{selectedItem.status}</Descriptions.Item>
+                <Descriptions.Item label="Specification" span={2}>
+                  {selectedItem.specification}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <Card title="Quote Summary" size="small" style={{ marginTop: 16 }}>
+              <Row gutter={16}>
+                <Col span={6}>
+                  <Statistic title="Total Quotes" value={quotes.length} prefix={<FileTextOutlined />} />
+                </Col>
+                <Col span={6}>
+                  <Statistic 
+                    title="Compliant Quotes" 
+                    value={quotes.filter(q => q.technicalCompliance).length}
+                    valueStyle={{ color: '#3f8600' }}
+                    prefix={<CheckCircleOutlined />}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic 
+                    title="Price Range" 
+                    value={quotes.length > 0 ? 
+                      `$${Math.min(...quotes.map(q => q.price)).toLocaleString()} - $${Math.max(...quotes.map(q => q.price)).toLocaleString()}` 
+                      : 'N/A'
+                    }
+                    prefix={<DollarOutlined />}
+                  />
+                </Col>
+                <Col span={6}>
+                  <Statistic 
+                    title="Avg Delivery" 
+                    value={quotes.length > 0 ? 
+                      Math.round(quotes.reduce((sum, q) => sum + q.deliveryTime, 0) / quotes.length) 
+                      : 0
+                    }
+                    suffix="days"
+                    prefix={<ClockCircleOutlined />}
+                  />
+                </Col>
+              </Row>
+            </Card>
+          </TabPane>
+
+          <TabPane tab={
+            <span>
+              <SwapOutlined />
+              Quote Comparison
+            </span>
+          } key="comparison">
+            <Table
+              dataSource={quotesWithCompliance}
+              pagination={false}
+              size="small"
+              columns={[
+                {
+                  title: 'Rank',
+                  key: 'rank',
+                  render: (_, __, index) => (
+                    <Badge 
+                      count={index + 1} 
+                      style={{ 
+                        backgroundColor: index === 0 ? '#52c41a' : index === 1 ? '#faad14' : '#1890ff' 
+                      }} 
+                    />
+                  ),
+                  width: 60
+                },
+                {
+                  title: 'Supplier',
+                  dataIndex: 'supplierName',
+                  key: 'supplier'
+                },
+                {
+                  title: 'Price',
+                  dataIndex: 'price',
+                  key: 'price',
+                  render: (price, record) => `$${price.toLocaleString()} ${record.currency}`,
+                  sorter: (a, b) => a.price - b.price
+                },
+                {
+                  title: 'Delivery',
+                  dataIndex: 'deliveryTime',
+                  key: 'delivery',
+                  render: (days) => `${days} days`,
+                  sorter: (a, b) => a.deliveryTime - b.deliveryTime
+                },                {
+                  title: 'Technical Compliance',
+                  key: 'compliance',
+                  render: (_, record) => (
+                    <Space>
+                      <Progress 
+                        type="circle" 
+                        percent={record.compliancePercentage} 
+                        width={40}
+                        strokeColor={record.technicalCompliance ? '#52c41a' : '#ff4d4f'}
+                      />
+                      <div style={{ textAlign: 'center' }}>
+                        <Tag color={record.technicalCompliance ? 'green' : 'red'}>
+                          {record.technicalCompliance ? 'Compliant' : 'Non-Compliant'}
+                        </Tag>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                          {record.compliancePercentage}% criteria met
+                        </Text>
+                      </div>
+                    </Space>
+                  ),
+                  sorter: (a, b) => a.compliancePercentage - b.compliancePercentage
+                },
+                {
+                  title: 'Compliance',
+                  dataIndex: 'technicalCompliance',
+                  key: 'compliance',
+                  render: (compliant) => (
+                    <Tag color={compliant ? 'green' : 'red'}>
+                      {compliant ? 'Compliant' : 'Non-Compliant'}
+                    </Tag>
+                  )
+                }
+              ]}
+              scroll={{ x: 600 }}
+            />
+          </TabPane>
+
+          <TabPane tab={
+            <span>
+              <SafetyCertificateOutlined />
+              Technical Evaluation
+            </span>
+          } key="evaluation">
+            <Form 
+              form={form} 
+              onFinish={handleEvaluationSubmit} 
+              layout="vertical"
+              initialValues={existingEvaluation}
+            >
+              <Collapse defaultActiveKey={quotes.map((_, index) => index.toString())}>
+                {quotes.map((quote, index) => (
+                  <Panel 
+                    key={index.toString()}
+                    header={
+                      <Space>
+                        <Badge count={index + 1} style={{ backgroundColor: '#1890ff' }} />
+                        <Text strong>{quote.supplierName}</Text>
+                        <Tag color="blue">${quote.price.toLocaleString()} {quote.currency}</Tag>
+                        <Tag>{quote.deliveryTime} days</Tag>                        {quotesWithCompliance[index]?.technicalCompliance && (
+                          <Tag color={quotesWithCompliance[index].technicalCompliance ? 'green' : 'red'}>
+                            {quotesWithCompliance[index].technicalCompliance ? 'Compliant' : 'Non-Compliant'} ({quotesWithCompliance[index].compliancePercentage}%)
+                          </Tag>
+                        )}
+                      </Space>
+                    }
+                  >                    <Card size="small" style={{ marginBottom: 16 }}>
+                      <Title level={5}>
+                        <SafetyCertificateOutlined /> Technical Compliance Evaluation
+                      </Title>
+                      
+                      {TECHNICAL_CRITERIA.map(criteria => (
+                        <Row key={criteria.key} gutter={16} style={{ marginBottom: 16 }}>
+                          <Col span={8}>
+                            <div>
+                              <Text strong>{criteria.name}</Text>
+                              {criteria.required && (
+                                <Tag color="red" size="small" style={{ marginLeft: 4 }}>Required</Tag>
+                              )}
+                              <br />
+                              <Text type="secondary" style={{ fontSize: '12px' }}>
+                                {criteria.description}
+                              </Text>
+                            </div>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name={[`quotes`, quote.id, `${criteria.key}_evaluation`]}
+                              style={{ marginBottom: 0 }}
+                              rules={criteria.required ? [{ required: true, message: `Please evaluate ${criteria.name}` }] : []}
+                            >
+                              <Radio.Group>
+                                {criteria.options.map(option => (
+                                  <Radio.Button 
+                                    key={option.value} 
+                                    value={option.value}
+                                    style={{ 
+                                      width: '50%',
+                                      textAlign: 'center',
+                                      marginBottom: 4
+                                    }}
+                                  >
+                                    <Space direction="vertical" size={0}>
+                                      <Text strong style={{ 
+                                        color: option.value === 'compliant' ? '#52c41a' : '#ff4d4f' 
+                                      }}>
+                                        {option.label}
+                                      </Text>
+                                    </Space>
+                                  </Radio.Button>
+                                ))}
+                              </Radio.Group>
+                            </Form.Item>
+                            <Text type="secondary" style={{ fontSize: '11px', display: 'block', marginTop: 4 }}>
+                              {criteria.options.find(opt => opt.value === 'compliant')?.description}
+                            </Text>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              name={[`quotes`, quote.id, `${criteria.key}_notes`]}
+                              style={{ marginBottom: 0 }}
+                              rules={[{ required: true, message: `Please provide notes for ${criteria.name}` }]}
+                            >
+                              <Input.TextArea 
+                                rows={2} 
+                                placeholder={`Evaluation notes for ${criteria.name.toLowerCase()}...`}
+                                size="small"
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      ))}
+                    </Card>
+
+                    <Card size="small" style={{ marginBottom: 16 }}>
+                      <Title level={5}>
+                        <CheckCircleOutlined /> Compliance Checklist
+                      </Title>
+                      
+                      <Form.Item name={[`quotes`, quote.id, `compliance_checklist`]}>
+                        <Checkbox.Group style={{ width: '100%' }}>
+                          <Row>
+                            {COMPLIANCE_CHECKLIST.map(item => (
+                              <Col span={12} key={item.key} style={{ marginBottom: 8 }}>
+                                <Checkbox value={item.key}>
+                                  <Space>
+                                    <Text>{item.name}</Text>
+                                    {item.required && (
+                                      <Tag color="red" size="small">Required</Tag>
+                                    )}
+                                  </Space>
+                                </Checkbox>
+                              </Col>
+                            ))}
+                          </Row>
+                        </Checkbox.Group>
+                      </Form.Item>
+                    </Card>
+
+                    <Card size="small" style={{ marginBottom: 16 }}>
+                      <Title level={5}>
+                        <WarningOutlined /> Risk Assessment
+                      </Title>
+                      
+                      {RISK_FACTORS.map(risk => (
+                        <Row key={risk.key} gutter={16} style={{ marginBottom: 12 }}>
+                          <Col span={6}>
+                            <Text strong>{risk.name}</Text>
+                            <br />
+                            <Text type="secondary" style={{ fontSize: '12px' }}>
+                              {risk.description}
+                            </Text>
+                          </Col>
+                          <Col span={6}>
+                            <Form.Item
+                              name={[`quotes`, quote.id, `${risk.key}_level`]}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <Select placeholder="Risk Level" size="small">
+                                <Option value="low">
+                                  <Tag color="green">Low Risk</Tag>
+                                </Option>
+                                <Option value="medium">
+                                  <Tag color="orange">Medium Risk</Tag>
+                                </Option>
+                                <Option value="high">
+                                  <Tag color="red">High Risk</Tag>
+                                </Option>
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              name={[`quotes`, quote.id, `${risk.key}_notes`]}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <Input 
+                                placeholder={`Risk mitigation notes for ${risk.name.toLowerCase()}...`}
+                                size="small"
+                              />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      ))}
+                    </Card>
+
+                    <Card size="small">
+                      <Title level={5}>Quote Details & Documentation</Title>
+                      
+                      <Row gutter={16}>
+                        <Col span={8}>
+                          <Text type="secondary">Delivery Term:</Text>
+                          <br />
+                          <Tag>{quote.deliveryTerm}</Tag>
+                        </Col>
+                        <Col span={8}>
+                          <Text type="secondary">Material Origin:</Text>
+                          <br />
+                          <Text>{quote.materialOrigin || 'Not specified'}</Text>
+                        </Col>
+                        <Col span={8}>
+                          <Text type="secondary">Valid Until:</Text>
+                          <br />
+                          <Text>{quote.validUntil ? new Date(quote.validUntil).toLocaleDateString() : 'Not specified'}</Text>
+                        </Col>
+                      </Row>
+                      
+                      {quote.notes && (
+                        <div style={{ marginTop: 12 }}>
+                          <Text type="secondary">Supplier Notes:</Text>
+                          <br />
+                          <Paragraph style={{ backgroundColor: '#f5f5f5', padding: 8, borderRadius: 4 }}>
+                            {quote.notes}
+                          </Paragraph>
+                        </div>
+                      )}
+                      
+                      {quote.documents?.length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <Text strong>Technical Documents:</Text>
+                          <br />
+                          <Space wrap style={{ marginTop: 8 }}>
+                            {quote.documents.map((doc, docIndex) => (
+                              <Button 
+                                key={docIndex}
+                                type="link" 
+                                icon={<FileTextOutlined />}
+                                onClick={() => message.info('Document preview would open here')}
+                                size="small"
+                              >
+                                Document {docIndex + 1}
+                              </Button>
+                            ))}
+                          </Space>
+                        </div>
+                      )}
+
+                      <Form.Item
+                        name={[`quotes`, quote.id, `overall_recommendation`]}
+                        label="Overall Technical Recommendation"
+                        style={{ marginTop: 16 }}
+                      >
+                        <Select placeholder="Select recommendation">
+                          <Option value="highly_recommended">
+                            <Space>
+                              <TrophyOutlined style={{ color: '#52c41a' }} />
+                              Highly Recommended
+                            </Space>
+                          </Option>
+                          <Option value="recommended">
+                            <Space>
+                              <CheckCircleOutlined style={{ color: '#1890ff' }} />
+                              Recommended
+                            </Space>
+                          </Option>
+                          <Option value="conditional">
+                            <Space>
+                              <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+                              Conditional Approval
+                            </Space>
+                          </Option>
+                          <Option value="not_recommended">
+                            <Space>
+                              <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                              Not Recommended
+                            </Space>
+                          </Option>
+                        </Select>
+                      </Form.Item>
+
+                      <Form.Item
+                        name={[`quotes`, quote.id, `technical_remarks`]}
+                        label="Technical Evaluation Remarks"
+                        rules={[{ required: true, message: 'Please provide technical evaluation remarks' }]}
+                      >
+                        <TextArea 
+                          rows={3} 
+                          placeholder="Provide detailed technical evaluation remarks, highlighting strengths, weaknesses, and specific concerns..."
+                        />
+                      </Form.Item>
+                    </Card>
+                  </Panel>
+                ))}
+              </Collapse>
+
+              <Card style={{ marginTop: 16 }} size="small">
+                <Title level={5}>
+                  <BarChartOutlined /> Evaluation Summary
+                </Title>
+                
+                <Form.Item
+                  name="technical_summary"
+                  label="Technical Evaluation Summary"
+                  rules={[{ required: true, message: 'Please provide a technical evaluation summary' }]}
+                >
+                  <TextArea 
+                    rows={4} 
+                    placeholder="Provide a comprehensive summary of the technical evaluation, comparison between quotes, and overall recommendations for technical compliance..."
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="recommended_suppliers"
+                  label="Recommended Suppliers (in order of preference)"
+                >
+                  <Select
+                    mode="multiple"
+                    placeholder="Select recommended suppliers in order of preference"
+                    optionLabelProp="label"
+                  >
+                    {quotesWithCompliance.map((quote, index) => (
+                      <Option 
+                        key={quote.id} 
+                        value={quote.supplierName}
+                        label={quote.supplierName}
+                      >
+                        <Space>
+                          <Badge count={index + 1} size="small" />
+                          <Text>{quote.supplierName}</Text>
+                          <Text type="secondary">({quote.technicalCompliance ? 'Compliant' : 'Non-Compliant'} - {quote.compliancePercentage}%)</Text>
+                        </Space>
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="next_steps"
+                  label="Recommended Next Steps"
+                >
+                  <Checkbox.Group>
+                    <Row>
+                      <Col span={12}>
+                        <Checkbox value="proceed_commercial">Proceed to Commercial Evaluation</Checkbox>
+                      </Col>
+                      <Col span={12}>
+                        <Checkbox value="request_clarification">Request Technical Clarification</Checkbox>
+                      </Col>
+                      <Col span={12}>
+                        <Checkbox value="additional_documentation">Request Additional Documentation</Checkbox>
+                      </Col>
+                      <Col span={12}>
+                        <Checkbox value="supplier_presentation">Schedule Supplier Presentation</Checkbox>
+                      </Col>
+                      <Col span={12}>
+                        <Checkbox value="site_visit">Arrange Supplier Site Visit</Checkbox>
+                      </Col>
+                      <Col span={12}>
+                        <Checkbox value="reference_check">Conduct Reference Checks</Checkbox>
+                      </Col>
+                    </Row>
+                  </Checkbox.Group>
+                </Form.Item>
+              </Card>
+
+              <Divider />
+
+              <Form.Item style={{ textAlign: 'center' }}>
+                <Space size="large">
+                  <Button 
+                    type="primary" 
+                    htmlType="submit"
+                    loading={loading}
+                    icon={<CheckCircleOutlined />}
+                    size="large"
+                  >
+                    {existingEvaluation ? 'Update' : 'Complete'} Technical Evaluation
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setEvaluationDrawerOpen(false);
+                      form.resetFields();
+                    }}
+                    size="large"
+                  >
+                    Cancel
+                  </Button>
+                  {autoSave && (
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      <ThunderboltOutlined /> Auto-save enabled
+                    </Text>
+                  )}
+                </Space>
+              </Form.Item>
+            </Form>
+          </TabPane>
+        </Tabs>
+      </Spin>
+    );
+  }, [selectedItem, evaluations, form, handleEvaluationSubmit, loading, autoSave]);
+  
+  // Enhanced form validation with auto-save trigger
+  const handleFormValuesChange = useCallback((changedValues, allValues) => {
+    if (autoSave && !readOnly && selectedItem) {
+      // Debounced auto-save to prevent too frequent saves
+      clearTimeout(window.autoSaveTimeout);
+      window.autoSaveTimeout = setTimeout(() => {
+        autoSaveEvaluation(allValues);
+      }, 2000);
+    }
+  }, [autoSave, readOnly, selectedItem, autoSaveEvaluation]);
+
+  // Updated compliance calculation - Binary system
+  const calculateTechnicalCompliance = (evaluation) => {
+    if (!evaluation || !evaluation.technicalCriteria) {
+      return { compliant: false, details: 'No evaluation data' };
+    }
+
+    const criticalCriteria = technicalCriteria.filter(c => c.criticalityLevel === 'Critical');
+    const highCriteria = technicalCriteria.filter(c => c.criticalityLevel === 'High');
+    
+    // Check critical criteria - all must be compliant
+    const criticalCompliance = criticalCriteria.every(criterion => 
+      evaluation.technicalCriteria[criterion.id] === 'compliant'
+    );
+    
+    // Check high criteria - majority must be compliant
+    const highCompliantCount = highCriteria.filter(criterion => 
+      evaluation.technicalCriteria[criterion.id] === 'compliant'
+    ).length;
+    const highCompliance = highCompliantCount >= Math.ceil(highCriteria.length * 0.8);
+    
+    const overallCompliant = criticalCompliance && highCompliance;
+    
+    return {
+      compliant: overallCompliant,
+      details: {
+        critical: criticalCompliance,
+        high: highCompliance,
+        criticalCount: criticalCriteria.length,
+        highCompliantCount,
+        highTotalCount: highCriteria.length
+      }
+    };
+  };
+
+  // Advanced scoring calculation with validation  
+  const calculateAdvancedTechnicalScore = useCallback((quoteData) => {
+    if (!quoteData) return { 
+      isCompliant: false, 
+      breakdown: {}, 
+      validation: {},
+      compliantCount: 0,
+      totalCriteria: TECHNICAL_CRITERIA.length 
+    };
+
+    const breakdown = {};
+    const validation = {};
+    let compliantCount = 0;
+
+    TECHNICAL_CRITERIA.forEach(criteria => {
+      const evaluation = quoteData[`${criteria.key}_evaluation`] || '';
+      const isCompliant = evaluation === 'compliant';
+      
+      breakdown[criteria.key] = {
+        evaluation,
+        isCompliant,
+        required: criteria.required,
+        hasNotes: !!quoteData[`${criteria.key}_notes`]
+      };
+
+      if (isCompliant) {
+        compliantCount++;
+      }
+
+      // Validation checks
+      validation[criteria.key] = {
+        hasEvaluation: !!evaluation,
+        hasNotes: !!quoteData[`${criteria.key}_notes`],
+        isComplete: !!evaluation && !!quoteData[`${criteria.key}_notes`]
+      };
+    });
+
+    // Overall compliance: all required criteria must be compliant
+    const requiredCriteria = TECHNICAL_CRITERIA.filter(c => c.required);
+    const compliantRequiredCount = requiredCriteria.filter(criteria => 
+      breakdown[criteria.key].isCompliant
+    ).length;
+    
+    const isOverallCompliant = compliantRequiredCount === requiredCriteria.length;
+
+    return {
+      isCompliant: isOverallCompliant,
+      breakdown,
+      validation,
+      compliantCount,
+      totalCriteria: TECHNICAL_CRITERIA.length,
+      requiredCompliantCount: compliantRequiredCount,
+      totalRequiredCriteria: requiredCriteria.length,
+      completeness: Object.values(validation).filter(v => v.isComplete).length / TECHNICAL_CRITERIA.length
+    };
+  }, []);
+  // Generate comprehensive evaluation report
+  const generateComprehensiveReport = useCallback(() => {
+    if (!selectedItem) return null;
+
+    const quotes = getQuotesByItemId(selectedItem.id);
+    const evaluation = evaluations[selectedItem.id];
+
+    if (!evaluation || !quotes?.length) return null;
+
+    const reportData = quotes.map(quote => {
+      const quoteEval = evaluation.quotes?.[quote.id] || {};
+      const complianceResult = calculateAdvancedTechnicalScore(quoteEval);
+      
+      // Calculate compliance checklist score
+      const complianceChecklist = quoteEval.compliance_checklist || [];
+      const totalCompliance = COMPLIANCE_CHECKLIST.length;
+      const passedCompliance = complianceChecklist.length;
+      const complianceScore = totalCompliance > 0 ? (passedCompliance / totalCompliance) * 100 : 0;
+
+      // Calculate risk score
+      const riskLevels = RISK_FACTORS.map(risk => 
+        quoteEval[`${risk.key}_level`] || 'medium'
+      );
+      const highRisks = riskLevels.filter(level => level === 'high').length;
+      const mediumRisks = riskLevels.filter(level => level === 'medium').length;
+      const riskScore = 100 - (highRisks * 25 + mediumRisks * 10); // Risk penalty
+
+      return {
+        supplier: quote.supplierName,
+        quote,
+        technicalCompliance: {
+          isCompliant: complianceResult.isCompliant,
+          compliantCount: complianceResult.compliantCount,
+          totalCriteria: complianceResult.totalCriteria,
+          requiredCompliantCount: complianceResult.requiredCompliantCount,
+          totalRequiredCriteria: complianceResult.totalRequiredCriteria,
+          status: complianceResult.isCompliant ? 'COMPLIANT' : 'NON-COMPLIANT'
+        },
+        breakdown: complianceResult.breakdown,
+        validation: complianceResult.validation,
+        completeness: complianceResult.completeness,
+        recommendation: quoteEval.overall_recommendation || 'pending',
+        remarks: quoteEval.technical_remarks || '',
+        compliance: {
+          total: totalCompliance,
+          passed: passedCompliance,
+          percentage: Math.round(complianceScore)
+        },
+        risks: {
+          high: highRisks,
+          medium: mediumRisks,
+          low: riskLevels.filter(level => level === 'low').length,
+          score: Math.max(0, riskScore)
+        }
+      };
+    });
+
+    // Sort by compliance status (compliant first), then by compliance percentage
+    return reportData.sort((a, b) => {
+      if (a.technicalCompliance.isCompliant !== b.technicalCompliance.isCompliant) {
+        return b.technicalCompliance.isCompliant - a.technicalCompliance.isCompliant;
+      }
+      return b.compliance.percentage - a.compliance.percentage;
+    });
+  }, [selectedItem, evaluations, calculateAdvancedTechnicalScore]);
+
+  // Enhanced notification system
+  const showNotification = useCallback((type, title, message, duration = 4500) => {
+    const notificationConfig = {
+      message: title,
+      description: message,
+      duration,
+      placement: 'topRight'
+    };
+
+    switch (type) {
+      case 'success':
+        message.success(notificationConfig);
+        break;
+      case 'warning':
+        message.warning(notificationConfig);
+        break;
+      case 'error':
+        message.error(notificationConfig);
+        break;
+      case 'info':
+      default:
+        message.info(notificationConfig);
+    }
+  }, []);
+  // Bulk evaluation actions
+  const handleBulkEvaluation = useCallback(async (items, template) => {
+    try {
+      setLoading(true);
+      
+      const results = await Promise.allSettled(
+        items.map(async (item) => {
+          const quotes = getQuotesByItemId(item.id);
+          if (!quotes?.length) {
+            throw new Error(`No quotes available for item ${item.id}`);
+          }
+
+          // Apply template-based compliance evaluation
+          const templateConfig = EVALUATION_TEMPLATES[template];
+          const defaultEvaluations = {};
+          
+          quotes.forEach(quote => {
+            templateConfig.criteria.forEach(criteriaKey => {
+              // Set default compliance evaluation as 'compliant' for template application
+              defaultEvaluations[`quotes.${quote.id}.${criteriaKey}_evaluation`] = 'compliant';
+              defaultEvaluations[`quotes.${quote.id}.${criteriaKey}_notes`] = `Auto-applied ${templateConfig.name} template - requires manual review`;
+            });
+            
+            // Apply default compliance checklist items
+            templateConfig.requiredChecks.forEach(checkKey => {
+              if (!defaultEvaluations[`quotes.${quote.id}.compliance_checklist`]) {
+                defaultEvaluations[`quotes.${quote.id}.compliance_checklist`] = [];
+              }
+              defaultEvaluations[`quotes.${quote.id}.compliance_checklist`].push(checkKey);
+            });
+          });
+
+          return {
+            itemId: item.id,
+            evaluation: defaultEvaluations,
+            status: 'template_applied'
+          };
+        })
+      );
+
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      showNotification(
+        failed === 0 ? 'success' : 'warning',
+        'Bulk Evaluation Complete',
+        `Successfully applied ${EVALUATION_TEMPLATES[template].name} template to ${successful} items. ${failed > 0 ? `${failed} items failed.` : ''}`
+      );
+
+    } catch (error) {
+      showNotification('error', 'Bulk Evaluation Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+  // Performance analytics for compliance-based evaluation
+  const getEvaluationAnalytics = useCallback(() => {
+    const totalPackages = packages.length;
+    const totalItems = packages.reduce((sum, pkg) => sum + getItemsByPackageId(pkg.id).length, 0);
+    const completedEvaluations = Object.keys(evaluations).length;
+    const completionRate = totalItems > 0 ? (completedEvaluations / totalItems) * 100 : 0;
+
+    // Calculate compliance distribution instead of score distribution
+    const complianceResults = Object.values(evaluations).map(evaluation => {
+      const quotes = getQuotesByItemId(evaluation.itemId);
+      if (!quotes?.length) return null;
+
+      return quotes.map(quote => {
+        const quoteEval = evaluation.quotes?.[quote.id] || {};
+        const complianceResult = calculateAdvancedTechnicalScore(quoteEval);
+        return {
+          isCompliant: complianceResult.isCompliant,
+          compliantCount: complianceResult.compliantCount,
+          totalCriteria: complianceResult.totalCriteria
+        };
+      });
+    }).flat().filter(Boolean);
+
+    const compliantQuotes = complianceResults.filter(r => r.isCompliant).length;
+    const nonCompliantQuotes = complianceResults.filter(r => !r.isCompliant).length;
+    const totalQuotes = complianceResults.length;
+    const complianceRate = totalQuotes > 0 ? (compliantQuotes / totalQuotes) * 100 : 0;
+
+    return {
+      totalPackages,
+      totalItems,
+      completedEvaluations,
+      completionRate: Math.round(completionRate),
+      complianceRate: Math.round(complianceRate),
+      complianceDistribution: {
+        compliant: compliantQuotes,
+        nonCompliant: nonCompliantQuotes,
+        total: totalQuotes
+      },
+      lastEvaluated: Object.values(evaluations)
+        .map(e => e.evaluatedAt)
+        .sort()
+        .reverse()[0] || null
+    };
+  }, [evaluations, calculateAdvancedTechnicalScore]);
+  // Analytics Dashboard Component
+  const renderAnalyticsDashboard = useCallback(() => {
+    const analytics = getEvaluationAnalytics();
+    
+    return (
+      <Card title={
+        <Space>
+          <BarChartOutlined />
+          <Text strong>Technical Compliance Analytics Dashboard</Text>
+        </Space>
+      } style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic
+              title="Total Items"
+              value={analytics.totalItems}
+              prefix={<FileTextOutlined />}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="Completion Rate"
+              value={analytics.completionRate}
+              suffix="%"
+              valueStyle={{ 
+                color: analytics.completionRate >= 80 ? '#3f8600' : 
+                       analytics.completionRate >= 60 ? '#faad14' : '#cf1322' 
+              }}
+              prefix={<CheckCircleOutlined />}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="Compliance Rate"
+              value={analytics.complianceRate}
+              suffix="%"
+              valueStyle={{ 
+                color: analytics.complianceRate >= 80 ? '#3f8600' : 
+                       analytics.complianceRate >= 60 ? '#faad14' : '#cf1322' 
+              }}
+              prefix={<SafetyCertificateOutlined />}
+            />
+          </Col>          <Col span={6}>
+            <Statistic
+              title="Last Evaluation"
+              value={analytics.lastEvaluated ? 
+                new Date(analytics.lastEvaluated).toLocaleDateString() : 'None'
+              }
+              prefix={<ClockCircleOutlined />}
+            />
+          </Col>
+        </Row>
+
+        <Divider />
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Card size="small" title="Compliance Distribution">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text>Compliant Quotes</Text>
+                  <Badge count={analytics.complianceDistribution.compliant} style={{ backgroundColor: '#52c41a' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text>Non-Compliant Quotes</Text>
+                  <Badge count={analytics.complianceDistribution.nonCompliant} style={{ backgroundColor: '#ff4d4f' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Text strong>Total Evaluated</Text>
+                  <Badge count={analytics.complianceDistribution.total} style={{ backgroundColor: '#1890ff' }} />
+                </div>
+              </Space>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card size="small" title="Evaluation Progress by Package">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {packagesWithEvaluationStatus.slice(0, 5).map(pkg => (
+                  <div key={pkg.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text ellipsis style={{ flex: 1, marginRight: 8 }}>{pkg.name}</Text>
+                    <Progress 
+                      percent={pkg.evaluationProgress} 
+                      size="small" 
+                      style={{ width: 100 }}
+                      format={() => `${pkg.evaluatedItems}/${pkg.totalItems}`}
+                    />
+                  </div>
+                ))}
+                {packagesWithEvaluationStatus.length > 5 && (
+                  <Text type="secondary">...and {packagesWithEvaluationStatus.length - 5} more packages</Text>
+                )}
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </Card>
+    );
+  }, [getEvaluationAnalytics, packagesWithEvaluationStatus]);
+
+  // Enhanced Quick Actions Component
+  const renderQuickActions = useCallback(() => {
+    return (
+      <Card title="Quick Actions" size="small" style={{ marginBottom: 16 }}>
+        <Space wrap>
+          <Button 
+            icon={<DownloadOutlined />} 
+            onClick={() => {
+              const analytics = getEvaluationAnalytics();
+              const blob = new Blob([JSON.stringify(analytics, null, 2)], {
+                type: 'application/json'
+              });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `tbe_analytics_${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+              message.success('Analytics exported successfully');
+            }}
+          >
+            Export Analytics
+          </Button>
+          
+          <Button 
+            icon={<SyncOutlined />} 
+            onClick={() => {
+              setEvaluations({});
+              localStorage.clear();
+              message.success('All evaluation data cleared');
+            }}
+            danger
+          >
+            Clear All Data
+          </Button>
+          
+          <Button 
+            icon={<BellOutlined />} 
+            onClick={() => {
+              const pendingItems = packages.flatMap(pkg => 
+                getItemsByPackageId(pkg.id).filter(item => !evaluations[item.id])
+              );
+              message.info(`${pendingItems.length} items pending evaluation`);
+            }}
+          >
+            Check Pending ({
+              packages.flatMap(pkg => 
+                getItemsByPackageId(pkg.id).filter(item => !evaluations[item.id])
+              ).length
+            })
+          </Button>
+          
+          <Button 
+            icon={<FilterOutlined />} 
+            onClick={() => {
+              message.info('Advanced filtering options would be available here');
+            }}
+          >
+            Advanced Filters
+          </Button>        </Space>
+      </Card>
+    );
+  }, [getEvaluationAnalytics, evaluations]);
+
+  // Enhanced Help System
+  const renderHelpSystem = useCallback(() => {
+    return (
+      <Card 
+        title="Evaluation Guide" 
+        size="small" 
+        style={{ marginBottom: 16 }}
+        data-help-system
+      >        <Collapse size="small">
+          <Panel header="Compliance Evaluation Guidelines" key="compliance">
+            <Timeline size="small">
+              <Timeline.Item color="green">
+                <Text strong>Compliant</Text>
+                <br />
+                <Text type="secondary">Meets all technical specifications and requirements</Text>
+              </Timeline.Item>
+              <Timeline.Item color="red">
+                <Text strong>Non-Compliant</Text>
+                <br />
+                <Text type="secondary">Does not meet technical specifications or requirements</Text>
+              </Timeline.Item>
+            </Timeline>
+            <Alert 
+              type="info" 
+              message="Binary Evaluation System" 
+              description="Technical compliance is evaluated on a binary basis: either the quote meets all requirements (Compliant) or it doesn't (Non-Compliant). All required criteria must be marked as compliant for overall compliance."
+              style={{ marginTop: 16 }}
+            />
+          </Panel>
+          
+          <Panel header="Risk Assessment Guide" key="risk">
+            <Row gutter={16}>
+              <Col span={8}>
+                <Card size="small" title={<Tag color="green">Low Risk</Tag>}>
+                  <Text type="secondary">Minimal impact, well-established suppliers, proven track record</Text>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" title={<Tag color="orange">Medium Risk</Tag>}>
+                  <Text type="secondary">Some concerns, manageable with proper oversight</Text>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small" title={<Tag color="red">High Risk</Tag>}>
+                  <Text type="secondary">Significant concerns, requires mitigation plan</Text>
+                </Card>
+              </Col>
+            </Row>
+          </Panel>
+          
+          <Panel header="Evaluation Best Practices" key="practices">            <ul style={{ paddingLeft: 16 }}>
+              <li>Review all technical documentation before scoring</li>
+              <li>Consider both current capabilities and future potential</li>
+              <li>Document all scoring rationale in notes sections</li>
+              <li>Compare quotes consistently using same criteria</li>
+              <li>Identify and document any clarifications needed</li>
+              <li>Consider supplier past performance and references</li>
+            </ul>
+          </Panel>
+        </Collapse>
+      </Card>
+    );
+  }, []);
+
+  return (
+    <div>
+      <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Title level={4} style={{ margin: 0 }}>Technical Bid Evaluation</Title>
+          <Space>
+            {autoSaveStatus && (
+              <Tag color={autoSaveStatus === 'saving' ? 'processing' : 'success'}>
+                {autoSaveStatus === 'saving' ? <SyncOutlined spin /> : <CheckOutlined />}
+                {autoSaveStatus === 'saving' ? 'Auto-saving...' : 'Auto-saved'}
+              </Tag>
+            )}
+            {readOnly && (
+              <Tag color="orange">Read Only Mode</Tag>
+            )}
+          </Space>
+        </div>
+
+        {/* Analytics Dashboard */}
+        {renderAnalyticsDashboard()}
+
+        {/* Quick Actions Panel */}
+        {renderQuickActions()}
+
+        {error && (
+          <Alert
+            message="Error"
+            description={error}
+            type="error"
+            showIcon
+            closable
+            onClose={() => setError(null)}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {!selectedPackage ? (
+          <Card>
+            <Table 
+              columns={packageColumns} 
+              dataSource={packages}
+              rowKey="id"
+              pagination={{
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} packages`,
+              }}
+            />
+          </Card>        ) : (
+          <Card>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Button 
+                type="link" 
+                onClick={() => setSelectedPackage(null)} 
+                style={{ paddingLeft: 0 }}
+              >
+                ← Back to Packages
+              </Button>
+              
+              <div>
+                <Text strong>Package: </Text>
+                <Text>{selectedPackage.name} ({selectedPackage.id})</Text>
+              </div>
+              
+              <Table 
+                columns={itemColumns} 
+                dataSource={getItemsByPackageId(selectedPackage.id)}
+                rowKey="id"
+                pagination={{
+                  showSizeChanger: true,
+                  showQuickJumper: true,
+                  showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                }}
+              />
+            </Space>
+          </Card>
+        )}
+      </Space>      <Drawer
+        title={
+          <Space direction="vertical" size={0}>
+            <Space>
+              <Text>Technical Evaluation</Text>
+              <Button 
+                type="text" 
+                size="small" 
+                icon={<QuestionCircleOutlined />}
+                onClick={() => message.info('Use the Help System for evaluation guidelines')}
+                title="Need help? Check the Help System"
+              />
+            </Space>
+            <Text type="secondary" style={{ fontSize: '14px' }}>
+              {selectedItem?.name} ({selectedItem?.id})
+            </Text>
+            {autoSaveStatus && (
+              <Tag 
+                size="small" 
+                color={autoSaveStatus === 'saving' ? 'processing' : 'success'}
+              >
+                {autoSaveStatus === 'saving' ? <SyncOutlined spin /> : <CheckOutlined />}
+                {autoSaveStatus === 'saving' ? 'Auto-saving...' : 'Auto-saved'}
+              </Tag>
+            )}
+          </Space>
+        }
+        width={720}
+        open={evaluationDrawerOpen}
+        onClose={() => setEvaluationDrawerOpen(false)}
+        destroyOnClose
+        extra={
+          <Space>
+            <Button 
+              icon={<SaveOutlined />}
+              onClick={() => autoSaveEvaluation(selectedItem?.id)}
+              size="small"
+              title="Save evaluation"
+            >
+              Save
+            </Button>
+            <Button 
+              icon={<DownloadOutlined />}
+              onClick={exportEvaluationData}
+              size="small"
+              title="Export evaluation data"
+            />
+          </Space>
+        }
+      >
+        {renderTechnicalEvaluation()}
+      </Drawer>
+
+      {/* Help System Integration */}
+      {renderHelpSystem()}
+
+      {/* Floating Help Button */}
+      <Button
+        type="primary"
+        shape="circle"
+        size="large"
+        icon={<QuestionCircleOutlined />}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          zIndex: 1000,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+        }}
+        onClick={() => {
+          // Scroll to help system or open modal
+          const helpElement = document.querySelector('[data-help-system]');
+          if (helpElement) {
+            helpElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+        title="Evaluation Help & Guidelines"
+      />
+    </div>
+  );
+};
+
+// PropTypes validation
+TBEManagement.propTypes = {
+  autoSave: PropTypes.bool,
+  onEvaluationComplete: PropTypes.func,
+  onEvaluationUpdate: PropTypes.func,
+  allowMultipleEvaluators: PropTypes.bool,
+  evaluationTimeout: PropTypes.number,
+  customFields: PropTypes.array,
+  readOnly: PropTypes.bool,
+  defaultView: PropTypes.oneOf(['packages', 'items']),
+  filterConfig: PropTypes.shape({
+    showCompleted: PropTypes.bool,
+    showPending: PropTypes.bool,
+    categories: PropTypes.array,
+  }),
+  permissions: PropTypes.shape({
+    canEvaluate: PropTypes.bool,
+    canApprove: PropTypes.bool,
+    canReject: PropTypes.bool,
+    canEdit: PropTypes.bool,
+  }),
+};
+
+// Default props
+TBEManagement.defaultProps = {
+  autoSave: true,
+  onEvaluationComplete: () => {},
+  onEvaluationUpdate: () => {},
+  allowMultipleEvaluators: false,
+  evaluationTimeout: 30000,
+  customFields: [],
+  readOnly: false,
+  defaultView: 'packages',
+  filterConfig: {
+    showCompleted: true,
+    showPending: true,
+    categories: [],
+  },
+  permissions: {
+    canEvaluate: true,
+    canApprove: true,
+    canReject: true,
+    canEdit: true,
+  },
+};
+
+export default TBEManagement;

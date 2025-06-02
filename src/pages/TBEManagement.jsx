@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { Table, Card, Tag, Space, Typography, Button, Drawer, Form, Radio, Input, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
-import { Item, Package, Quote } from '../types/procurement';
 import { packages, getItemsByPackageId, getQuotesByItemId } from '../mock/mockData';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
-const TBEManagement: React.FC = () => {
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+const TBEManagement = () => {
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [evaluationDrawerOpen, setEvaluationDrawerOpen] = useState(false);
   const [form] = Form.useForm();
-
-  const handleEvaluate = (item: Item) => {
+  const handleEvaluate = (item) => {
     setSelectedItem(item);
     setEvaluationDrawerOpen(true);
   };
 
-  const handleEvaluationSubmit = (values: any) => {
+  const handleEvaluationSubmit = (values) => {
     message.success('Technical evaluation submitted successfully');
     setEvaluationDrawerOpen(false);
     form.resetFields();
@@ -33,8 +31,7 @@ const TBEManagement: React.FC = () => {
     {
       title: 'Name',
       dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: Package) => (
+      key: 'name',      render: (text, record) => (
         <a onClick={() => setSelectedPackage(record)}>{text}</a>
       ),
     },
@@ -42,22 +39,20 @@ const TBEManagement: React.FC = () => {
       title: 'Engineer',
       dataIndex: 'procurementEngineer',
       key: 'engineer',
-      render: (engineer: { name: string }) => engineer.name,
-    },
-    {
+      render: (engineer) => engineer.name,
+    },    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
+      render: (status) => (
         <Tag color={status === 'Open' ? 'blue' : status === 'In Progress' ? 'orange' : 'green'}>
           {status}
         </Tag>
       ),
-    },
-    {
+    },    {
       title: 'Action',
       key: 'action',
-      render: (_: any, record: Package) => (
+      render: (_, record) => (
         <Button type="primary" onClick={() => setSelectedPackage(record)}>
           Review Items
         </Button>
@@ -86,12 +81,11 @@ const TBEManagement: React.FC = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-    },
-    {
+    },    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
+      render: (status) => (
         <Tag color={status === 'Open' ? 'blue' : status === 'Quoted' ? 'orange' : 'green'}>
           {status}
         </Tag>
@@ -100,7 +94,7 @@ const TBEManagement: React.FC = () => {
     {
       title: 'Action',
       key: 'action',
-      render: (_: any, record: Item) => (
+      render: (_, record) => (
         <Button 
           type="primary" 
           icon={<EyeOutlined />}
