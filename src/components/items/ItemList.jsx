@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Table, Button, Tag, Space, Input, Drawer, Typography, Descriptions, Badge, Menu, Form, Select, InputNumber, DatePicker, message, Upload, Card, Alert, Spin } from 'antd';
-import { SearchOutlined, PlusOutlined, EyeOutlined, FilterOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, Space, Input, Drawer, Typography, Descriptions, Badge, Menu, Form, Select, InputNumber, DatePicker, message, Upload, Card, Alert, Spin, Modal } from 'antd';
+import { SearchOutlined, PlusOutlined, EyeOutlined, FilterOutlined, ReloadOutlined, DownloadOutlined, UploadOutlined, ArrowLeftOutlined, FileExcelOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { getItemsByPackageId, suppliers } from '../../mock/mockData';
 import QuoteList from '../quotes/QuoteList';
 import moment from 'moment';
 import PropTypes from 'prop-types';
+import * as XLSX from 'xlsx';
 
 const { Title, Text } = Typography;
 
@@ -111,6 +112,274 @@ const ItemList = ({ selectedPackage, onBackToPackages }) => {
       setLoading(false);
     }
   }, [addQuoteForm]);
+  // Professional Excel RFQ Export Function with Confirmation
+  const handleExportRFQ = useCallback(() => {
+    if (!filteredItems || filteredItems.length === 0) {
+      message.warning('No items available to export');
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Export RFQ to Excel',
+      icon: <ExclamationCircleOutlined />,
+      content: (
+        <div>
+          <p>You are about to export a professional RFQ document containing:</p>
+          <ul style={{ marginLeft: 20, marginTop: 10 }}>
+            <li><strong>{filteredItems.length}</strong> items from package <strong>{selectedPackage?.name}</strong></li>
+            <li>Company information and contact details</li>
+            <li>Technical requirements and standards</li>
+            <li>Supplier quotation forms</li>
+          </ul>
+          <p style={{ marginTop: 15, color: '#666' }}>
+            The Excel file will contain multiple sheets designed for professional supplier communication.
+          </p>
+        </div>
+      ),
+      okText: 'Export RFQ',
+      cancelText: 'Cancel',
+      width: 500,
+      onOk: () => generateExcelRFQ(),
+    });  }, [filteredItems, selectedPackage]);
+
+  const generateExcelRFQ = useCallback(() => {
+    try {
+      if (!filteredItems || filteredItems.length === 0) {
+        message.warning('No items available to export');
+        return;
+      }
+
+      // Show loading message
+      const loadingMessage = message.loading('Generating professional RFQ Excel file...', 0);
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      
+      // Company Information Sheet
+      const companyInfo = [
+        ['Request for Quotation (RFQ)'],
+        [''],
+        ['Company Information:'],
+        ['Company Name:', 'Your Company Name Ltd.'],
+        ['Contact Person:', 'Procurement Manager'],
+        ['Email:', 'procurement@company.com'],
+        ['Phone:', '+1 (555) 123-4567'],
+        ['Address:', '123 Business Street, City, State 12345'],
+        [''],
+        ['RFQ Details:'],
+        ['Package ID:', selectedPackage?.id || 'N/A'],
+        ['Package Name:', selectedPackage?.name || 'N/A'],
+        ['Package Description:', selectedPackage?.description || 'N/A'],
+        ['Issue Date:', moment().format('YYYY-MM-DD')],
+        ['Due Date:', selectedPackage?.dueDate || 'N/A'],
+        ['Procurement Engineer:', selectedPackage?.procurementEngineer?.name || 'N/A'],
+        ['Engineer Email:', selectedPackage?.procurementEngineer?.email || 'N/A'],
+        [''],
+        ['Instructions for Suppliers:'],
+        ['1. Please fill in the "Unit Price", "Total Price", "Currency", and "Delivery Time" columns'],
+        ['2. All prices should be quoted in the specified currency'],
+        ['3. Delivery time should be specified in working days'],
+        ['4. Include any technical clarifications in the "Supplier Notes" column'],
+        ['5. Submit your quotation by the due date mentioned above'],
+        ['6. For technical queries, contact the procurement engineer'],
+        [''],
+        ['Terms and Conditions:'],
+        ['• Prices should be valid for 30 days from submission date'],
+        ['• Delivery terms as specified in individual items'],
+        ['• Payment terms: Net 30 days after delivery'],
+        ['• Quality certificates may be required upon delivery'],
+        ['• All items must meet specified technical requirements'],
+        ['']
+      ];
+
+      const infoWS = XLSX.utils.aoa_to_sheet(companyInfo);
+      
+      // Set column widths for company info sheet
+      infoWS['!cols'] = [
+        { width: 25 },
+        { width: 40 }
+      ];
+
+      // Style the header
+      infoWS['A1'] = { 
+        v: 'Request for Quotation (RFQ)', 
+        s: { 
+          font: { bold: true, sz: 16 }, 
+          alignment: { horizontal: 'center' } 
+        } 
+      };
+
+      XLSX.utils.book_append_sheet(workbook, infoWS, 'RFQ Information');
+
+      // Items for Quotation Sheet
+      const headers = [
+        'Item ID',
+        'Item Name', 
+        'Description',
+        'Technical Specification',
+        'Quantity',
+        'Unit',
+        'Category',
+        'Required Delivery Term',
+        '',
+        '--- SUPPLIER TO FILL ---',
+        'Unit Price',
+        'Total Price',
+        'Currency',
+        'Delivery Time (Working Days)',
+        'Supplier Notes/Clarifications',
+        'Supplier Company Name',
+        'Contact Person',
+        'Email',
+        'Phone'
+      ];
+
+      const itemsData = filteredItems.map(item => [
+        item.id,
+        item.name,
+        item.description,
+        item.specification,
+        item.quantity,
+        item.unit,
+        item.category,
+        'FOB (Free on Board)', // Default delivery term, can be customized
+        '',
+        '', // Separator
+        '', // Unit Price - to be filled by supplier
+        '', // Total Price - to be filled by supplier  
+        'USD', // Default currency - supplier can change
+        '', // Delivery Time - to be filled by supplier
+        '', // Supplier Notes - to be filled by supplier
+        '', // Supplier Company Name - to be filled by supplier
+        '', // Contact Person - to be filled by supplier
+        '', // Email - to be filled by supplier
+        ''  // Phone - to be filled by supplier
+      ]);
+
+      const allData = [headers, ...itemsData];
+      const itemsWS = XLSX.utils.aoa_to_sheet(allData);
+
+      // Set column widths for items sheet
+      itemsWS['!cols'] = [
+        { width: 12 }, // Item ID
+        { width: 25 }, // Item Name
+        { width: 40 }, // Description
+        { width: 35 }, // Specification
+        { width: 10 }, // Quantity
+        { width: 8 },  // Unit
+        { width: 12 }, // Category
+        { width: 20 }, // Delivery Term
+        { width: 3 },  // Separator
+        { width: 25 }, // Header separator
+        { width: 15 }, // Unit Price
+        { width: 15 }, // Total Price
+        { width: 10 }, // Currency
+        { width: 20 }, // Delivery Time
+        { width: 30 }, // Notes
+        { width: 25 }, // Company Name
+        { width: 20 }, // Contact Person
+        { width: 25 }, // Email
+        { width: 15 }  // Phone
+      ];
+
+      // Style headers
+      const headerRange = XLSX.utils.decode_range(itemsWS['!ref']);
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (!itemsWS[cellAddress]) continue;
+        
+        itemsWS[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "366092" } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin' },
+            bottom: { style: 'thin' },
+            left: { style: 'thin' },
+            right: { style: 'thin' }
+          }
+        };
+      }
+
+      // Highlight supplier fill columns (J to S)
+      for (let row = 1; row <= itemsData.length; row++) {
+        for (let col = 10; col <= 18; col++) { // Columns K to S (0-indexed: 10 to 18)
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          if (!itemsWS[cellAddress]) itemsWS[cellAddress] = { v: '' };
+          
+          itemsWS[cellAddress].s = {
+            fill: { fgColor: { rgb: "FFF2CC" } }, // Light yellow background
+            border: {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
+            }
+          };
+        }
+      }
+
+      XLSX.utils.book_append_sheet(workbook, itemsWS, 'Items for Quotation');
+
+      // Technical Requirements Sheet (if needed)
+      const techRequirements = [
+        ['Technical Requirements & Standards'],
+        [''],
+        ['General Requirements:'],
+        ['• All items must be new and unused'],
+        ['• Manufacturer warranties apply as per standard terms'],
+        ['• Items must comply with applicable industry standards'],
+        ['• Certificates of compliance may be requested'],
+        [''],
+        ['Quality Standards:'],
+        ['• ISO 9001:2015 certification preferred'],
+        ['• Items must pass incoming inspection'],
+        ['• Non-conforming items will be rejected'],
+        [''],
+        ['Packaging & Shipping:'],
+        ['• Items must be properly packaged for shipping'],
+        ['• Clear labeling with item ID and description required'],
+        ['• Shipping insurance recommended'],
+        ['• Delivery to be coordinated with procurement engineer'],
+        [''],
+        ['Documentation Required:'],
+        ['• Commercial invoice'],
+        ['• Packing list'],
+        ['• Test certificates (where applicable)'],
+        ['• Material safety data sheets (for chemicals)'],
+        ['• Operating manuals (for equipment)']
+      ];
+
+      const techWS = XLSX.utils.aoa_to_sheet(techRequirements);
+      techWS['!cols'] = [{ width: 50 }];
+      
+      // Style the header
+      techWS['A1'].s = {
+        font: { bold: true, sz: 14 },
+        alignment: { horizontal: 'center' }
+      };
+
+      XLSX.utils.book_append_sheet(workbook, techWS, 'Technical Requirements');
+
+      // Generate filename with timestamp
+      const timestamp = moment().format('YYYYMMDD_HHmmss');
+      const filename = `RFQ_${selectedPackage?.id || 'Package'}_${timestamp}.xlsx`;      // Write and download file
+      XLSX.writeFile(workbook, filename);
+      
+      // Close loading message
+      loadingMessage();
+      
+      message.success({
+        content: `RFQ Excel file "${filename}" has been generated and downloaded successfully!`,
+        duration: 5,
+        style: { marginTop: '20vh' }
+      });
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export RFQ: ' + error.message);
+    }
+  }, [filteredItems, selectedPackage]);
 
   const columns = useMemo(() => [
     {
@@ -323,16 +592,30 @@ const ItemList = ({ selectedPackage, onBackToPackages }) => {
               </Title>
               <Text type="secondary">
                 {selectedPackage?.description} | Due: {selectedPackage?.dueDate}
-              </Text>
+              </Text>            </Space>
+            <Space>
+              <Button
+                type="default"
+                icon={<FileExcelOutlined />}
+                onClick={handleExportRFQ}
+                disabled={loading || !filteredItems.length}
+                style={{ 
+                  background: '#52c41a', 
+                  borderColor: '#52c41a', 
+                  color: 'white' 
+                }}
+              >
+                Export RFQ to Excel
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setAddDrawerVisible(true)}
+                disabled={loading}
+              >
+                Add Item
+              </Button>
             </Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setAddDrawerVisible(true)}
-              disabled={loading}
-            >
-              Add Item
-            </Button>
           </div>
 
           <Menu mode="horizontal" style={{ marginBottom: 16 }}>
@@ -342,7 +625,7 @@ const ItemList = ({ selectedPackage, onBackToPackages }) => {
             <Menu.Item key="awarded" icon={<FilterOutlined />}>Awarded</Menu.Item>
             <Menu.Item key="delivered" icon={<FilterOutlined />}>Delivered</Menu.Item>
             <Menu.Item key="refresh" icon={<ReloadOutlined />}>Refresh</Menu.Item>
-            <Menu.Item key="export" icon={<DownloadOutlined />}>Export</Menu.Item>
+            <Menu.Item key="export" icon={<DownloadOutlined />} onClick={handleExportRFQ}>Export</Menu.Item>
           </Menu>
           
           <div style={{ marginBottom: 16 }}>
